@@ -1,899 +1,323 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import "./App.css";
 
+import Login from "./Login";
+import InsertEmployee from "./InsertEmployee";
+import EditEmployee from "./EditEmployee";
+import GetAllEmployees from "./GetAllEmployees";
+import GetEmployeeById from "./GetEmployeeById";
+
+import {
+  createEmployee,
+  getEmployeeById,
+  getAllEmployees,
+  updateEmployee,
+  deleteEmployee
+} from "./EmployeeService";
+
+const emptyEmployee = {
+  eName: "",
+  eLastName: "",
+  age: "",
+  salary: "",
+  dept: "",
+  phone: ""
+};
+
 function App() {
-
-  const API = "http://localhost:9346/employee";
-
-  // All employees
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activePage, setActivePage] = useState("dashboard");
   const [employees, setEmployees] = useState([]);
-
-  // Form data
-  const [employee, setEmployee] = useState({
-    eName: "",
-    eLastName: "",
-    age: "",
-    salary: "",
-    dept: "",
-    phone: ""
-  });
-
-  // Search ID
-  const [searchId, setSearchId] = useState("");
-
-  // Selected employee
-  const [searchedEmployee, setSearchedEmployee] = useState(null);
-
-  // Update mode
+  const [employee, setEmployee] = useState({ ...emptyEmployee });
   const [editingId, setEditingId] = useState(null);
-
-  // Message
+  const [searchId, setSearchId] = useState("");
+  const [searchedEmployee, setSearchedEmployee] = useState(null);
+  const [searchText, setSearchText] = useState("");
   const [message, setMessage] = useState("");
-
-  // Loading
   const [loading, setLoading] = useState(false);
 
-
-  // =========================
-  // GET ALL EMPLOYEES
-  // =========================
-  const getAllEmployees = async () => {
-
+  const loadEmployees = async () => {
     try {
-
       setLoading(true);
-
-      const response = await axios.get(`${API}/getAllEmp`);
-
+      const response = await getAllEmployees();
       setEmployees(response.data);
-
     } catch (error) {
-
-      console.log(error);
-
-      setMessage("❌ Unable to fetch employees");
-
+      console.error("Unable to load employees:", error);
+      setMessage("Unable to connect to the backend. Please check Spring Boot and MySQL.");
     } finally {
-
       setLoading(false);
-
     }
   };
 
-
-  // =========================
-  // PAGE LOAD
-  // =========================
   useEffect(() => {
+    if (isLoggedIn) {
+      loadEmployees();
+    }
+  }, [isLoggedIn]);
 
-    getAllEmployees();
-
-  }, []);
-
-
-  // =========================
-  // HANDLE INPUT
-  // =========================
-  const handleChange = (e) => {
-
-    const { name, value } = e.target;
-
-    setEmployee({
-      ...employee,
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setEmployee((previousEmployee) => ({
+      ...previousEmployee,
       [name]: value
-    });
-
+    }));
   };
 
-
-  // =========================
-  // CREATE EMPLOYEE
-  // =========================
-  const createEmployee = async (e) => {
-
-    e.preventDefault();
-
-    try {
-
-      const response = await axios.post(
-        `${API}/createEmployee`,
-        {
-          eName: employee.eName,
-          eLastName: employee.eLastName,
-          age: Number(employee.age),
-          salary: Number(employee.salary),
-          dept: employee.dept,
-          phone: Number(employee.phone)
-        }
-      );
-
-      console.log(response.data);
-
-      setMessage("✅ Employee added successfully!");
-
-      clearForm();
-
-      getAllEmployees();
-
-    } catch (error) {
-
-      console.log(error);
-
-      setMessage("❌ Failed to add employee");
-
-    }
-
-  };
-
-
-  // =========================
-  // GET EMPLOYEE BY ID
-  // =========================
-  const getEmployeeById = async () => {
-
-    if (!searchId) {
-
-      setMessage("⚠️ Please enter Employee ID");
-
-      return;
-
-    }
-
-    try {
-
-      const response = await axios.get(
-        `${API}/createEmployee/${searchId}`
-      );
-
-      setSearchedEmployee(response.data);
-
-      setMessage("✅ Employee found");
-
-    } catch (error) {
-
-      console.log(error);
-
-      setSearchedEmployee(null);
-
-      setMessage("❌ Employee not found");
-
-    }
-
-  };
-
-
-  // =========================
-  // DELETE EMPLOYEE
-  // =========================
-  const deleteEmployee = async (id) => {
-
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this employee?"
-    );
-
-    if (!confirmDelete) {
-      return;
-    }
-
-    try {
-
-      await axios.delete(`${API}/delEmp/${id}`);
-
-      setMessage("🗑️ Employee deleted successfully!");
-
-      getAllEmployees();
-
-    } catch (error) {
-
-      console.log(error);
-
-      setMessage("❌ Failed to delete employee");
-
-    }
-
-  };
-
-
-  // =========================
-  // START UPDATE
-  // =========================
-  const startEdit = (emp) => {
-
-    setEditingId(emp.empId);
-
-    setEmployee({
-      eName: emp.eName,
-      eLastName: emp.eLastName,
-      age: emp.age,
-      salary: emp.salary,
-      dept: emp.dept,
-      phone: emp.phone
-    });
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-
-  };
-
-
-  // =========================
-  // UPDATE EMPLOYEE
-  // =========================
-  const updateEmployee = async (e) => {
-
-    e.preventDefault();
-
-    try {
-
-      const response = await axios.put(
-        `${API}/updateEmp/${editingId}`,
-        {
-          eName: employee.eName,
-          eLastName: employee.eLastName,
-          age: Number(employee.age),
-          salary: Number(employee.salary),
-          dept: employee.dept,
-          phone: Number(employee.phone)
-        }
-      );
-
-      console.log(response.data);
-
-      setMessage("✅ Employee updated successfully!");
-
-      setEditingId(null);
-
-      clearForm();
-
-      getAllEmployees();
-
-    } catch (error) {
-
-      console.log(error);
-
-      setMessage("❌ Failed to update employee");
-
-    }
-
-  };
-
-
-  // =========================
-  // CLEAR FORM
-  // =========================
   const clearForm = () => {
-
-    setEmployee({
-      eName: "",
-      eLastName: "",
-      age: "",
-      salary: "",
-      dept: "",
-      phone: ""
-    });
-
+    setEmployee({ ...emptyEmployee });
     setEditingId(null);
-
   };
 
+  const prepareEmployeeData = () => ({
+    eName: employee.eName.trim(),
+    eLastName: employee.eLastName.trim(),
+    age: Number(employee.age),
+    salary: Number(employee.salary),
+    dept: employee.dept.trim(),
+    phone: Number(employee.phone)
+  });
 
-  // =========================
-  // CANCEL UPDATE
-  // =========================
-  const cancelEdit = () => {
+  const handleInsertEmployee = async (event) => {
+    event.preventDefault();
 
+    try {
+      setLoading(true);
+      await createEmployee(prepareEmployeeData());
+      setMessage("Employee inserted successfully.");
+      clearForm();
+      setActivePage("employees");
+      await loadEmployees();
+    } catch (error) {
+      console.error("Unable to insert employee:", error);
+      setMessage("Failed to insert employee. Please check the entered details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditEmployee = (selectedEmployee) => {
+    setEmployee({
+      eName: selectedEmployee.eName || "",
+      eLastName: selectedEmployee.eLastName || "",
+      age: selectedEmployee.age ?? "",
+      salary: selectedEmployee.salary ?? "",
+      dept: selectedEmployee.dept || "",
+      phone: selectedEmployee.phone ?? ""
+    });
+    setEditingId(selectedEmployee.empId);
+    setActivePage("edit");
+  };
+
+  const handleUpdateEmployee = async (event) => {
+    event.preventDefault();
+
+    try {
+      setLoading(true);
+      await updateEmployee(editingId, prepareEmployeeData());
+      setMessage("Employee updated successfully.");
+      clearForm();
+      setActivePage("employees");
+      await loadEmployees();
+    } catch (error) {
+      console.error("Unable to update employee:", error);
+      setMessage("Failed to update employee.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteEmployee = async (id) => {
+    const confirmed = window.confirm(`Do you want to delete employee #${id}?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteEmployee(id);
+      setMessage("Employee deleted successfully.");
+      await loadEmployees();
+    } catch (error) {
+      console.error("Unable to delete employee:", error);
+      setMessage("Failed to delete employee.");
+    }
+  };
+
+  const handleFindEmployee = async (event) => {
+    event.preventDefault();
+
+    try {
+      const response = await getEmployeeById(searchId);
+      setSearchedEmployee(response.data);
+      setMessage("");
+    } catch (error) {
+      console.error("Employee not found:", error);
+      setSearchedEmployee(null);
+      setMessage(`Employee with ID ${searchId} was not found.`);
+    }
+  };
+
+  const logout = () => {
+    setIsLoggedIn(false);
+    setActivePage("dashboard");
     clearForm();
-
-    setMessage("Update cancelled");
-
+    setSearchedEmployee(null);
+    setMessage("");
   };
 
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
+
+  const departmentCount = new Set(employees.map((item) => item.dept).filter(Boolean)).size;
+  const totalSalary = employees.reduce((total, item) => total + Number(item.salary || 0), 0);
 
   return (
-
-    <div className="app">
-
-      {/* ================= HEADER ================= */}
-
-      <header className="top-header">
-
-        <div className="brand-section">
-
-          <div className="brand-icon">
-            EM
-          </div>
-
+    <div className="app-layout">
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <span className="brand-mark">EP</span>
           <div>
-            <h1>Employee Management</h1>
-
-            <p>
-              Manage your workforce with ease
-            </p>
+            <strong>Employee Portal</strong>
+            <small>Management workspace</small>
           </div>
-
         </div>
 
-        <div className="header-status">
-          <span className="status-dot"></span>
-          System Online
+        <div className="nav-label">WORKSPACE</div>
+        <button className={`nav-link ${activePage === "dashboard" ? "active" : ""}`} onClick={() => setActivePage("dashboard")}>
+          <span className="nav-icon">▦</span> Dashboard
+        </button>
+        <button className={`nav-link ${activePage === "insert" ? "active" : ""}`} onClick={() => { clearForm(); setActivePage("insert"); }}>
+          <span className="nav-icon">＋</span> Insert Employee
+        </button>
+        <button className={`nav-link ${activePage === "employees" ? "active" : ""}`} onClick={() => setActivePage("employees")}>
+          <span className="nav-icon">♙</span> Get All Employees
+        </button>
+        <button className={`nav-link ${activePage === "find" ? "active" : ""}`} onClick={() => setActivePage("find")}>
+          <span className="nav-icon">⌕</span> Get Employee By ID
+        </button>
+
+        <div className="sidebar-bottom">
+          <div className="profile-mini">
+            <span className="profile-avatar">A</span>
+            <span><strong>Administrator</strong><small>Admin account</small></span>
+          </div>
+          <button className="logout-button" onClick={logout}>↪ Sign out</button>
         </div>
+      </aside>
 
-      </header>
-
-
-      <main className="main-container">
-
-
-        {/* ================= MESSAGE ================= */}
-
-        {message && (
-
-          <div className="message-box">
-
-            <span>{message}</span>
-
-            <button
-              onClick={() => setMessage("")}
-            >
-              ×
-            </button>
-
+      <main className="main-area">
+        <header className="topbar">
+          <div>
+            <span className="eyebrow">EMPLOYEE MANAGEMENT SYSTEM</span>
+            <h1>{pageTitle(activePage)}</h1>
           </div>
-
-        )}
-
-
-        {/* ================= STAT CARDS ================= */}
-
-        <section className="stats-grid">
-
-          <div className="stat-card">
-
-            <div className="stat-icon blue">
-              👥
-            </div>
-
-            <div>
-              <p>Total Employees</p>
-              <h2>{employees.length}</h2>
-            </div>
-
+          <div className="topbar-right">
+            <span className="online-indicator"><i /> System online</span>
+            <span className="topbar-avatar">A</span>
           </div>
+        </header>
 
-
-          <div className="stat-card">
-
-            <div className="stat-icon green">
-              💼
+        <div className="page-content">
+          {message && (
+            <div className="message-box">
+              <span>{message}</span>
+              <button onClick={() => setMessage("")} aria-label="Close message">×</button>
             </div>
+          )}
 
-            <div>
-              <p>Departments</p>
+          {activePage === "dashboard" && (
+            <>
+              <section className="welcome-panel">
+                <div>
+                  <span className="eyebrow">OVERVIEW</span>
+                  <h2>Welcome back, Admin</h2>
+                  <p>Here is what is happening with your workforce today.</p>
+                </div>
+                <button className="button button-white" onClick={() => setActivePage("insert")}>＋ Add employee</button>
+              </section>
 
-              <h2>
-                {
-                  new Set(
-                    employees.map(emp => emp.dept)
-                  ).size
-                }
-              </h2>
+              <section className="stats-grid">
+                <div className="stat-card">
+                  <span className="stat-symbol blue-symbol">♙</span>
+                  <div><p>Total employees</p><h2>{employees.length}</h2><small>Employee records</small></div>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-symbol purple-symbol">▦</span>
+                  <div><p>Departments</p><h2>{departmentCount}</h2><small>Unique departments</small></div>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-symbol green-symbol">₹</span>
+                  <div><p>Total payroll</p><h2>₹{totalSalary.toLocaleString("en-IN")}</h2><small>Monthly salary total</small></div>
+                </div>
+              </section>
 
-            </div>
-
-          </div>
-
-
-          <div className="stat-card">
-
-            <div className="stat-icon orange">
-              💰
-            </div>
-
-            <div>
-              <p>Management</p>
-              <h2>CRUD</h2>
-            </div>
-
-          </div>
-
-
-          <div className="stat-card">
-
-            <div className="stat-icon purple">
-              ⚡
-            </div>
-
-            <div>
-              <p>Backend</p>
-              <h2>Spring</h2>
-            </div>
-
-          </div>
-
-        </section>
-
-
-        {/* ================= FORM ================= */}
-
-        <section className="panel">
-
-          <div className="panel-heading">
-
-            <div>
-
-              <span className="section-label">
-                {editingId ? "EDIT EMPLOYEE" : "NEW EMPLOYEE"}
-              </span>
-
-              <h2>
-                {editingId
-                  ? `Update Employee #${editingId}`
-                  : "Add Employee"}
-              </h2>
-
-            </div>
-
-            {editingId && (
-
-              <button
-                className="cancel-button"
-                onClick={cancelEdit}
-              >
-                Cancel Update
-              </button>
-
-            )}
-
-          </div>
-
-
-          <form
-            onSubmit={
-              editingId
-                ? updateEmployee
-                : createEmployee
-            }
-            className="employee-form"
-          >
-
-
-            {/* FIRST NAME */}
-
-            <div className="input-group">
-
-              <label>First Name</label>
-
-              <input
-                type="text"
-                name="eName"
-                placeholder="Enter first name"
-                value={employee.eName}
-                onChange={handleChange}
-                required
+              <GetAllEmployees
+                employees={employees.slice(0, 5)}
+                loading={loading}
+                onEdit={handleEditEmployee}
+                onDelete={handleDeleteEmployee}
+                searchText=""
+                onSearchChange={() => {}}
               />
+              <div className="dashboard-footer">
+                <span>Recent employee records</span>
+                <button className="text-button edit-text" onClick={() => setActivePage("employees")}>View all employees →</button>
+              </div>
+            </>
+          )}
 
-            </div>
-
-
-            {/* LAST NAME */}
-
-            <div className="input-group">
-
-              <label>Last Name</label>
-
-              <input
-                type="text"
-                name="eLastName"
-                placeholder="Enter last name"
-                value={employee.eLastName}
-                onChange={handleChange}
-                required
-              />
-
-            </div>
-
-
-            {/* AGE */}
-
-            <div className="input-group">
-
-              <label>Age</label>
-
-              <input
-                type="number"
-                name="age"
-                placeholder="Enter age"
-                value={employee.age}
-                onChange={handleChange}
-                required
-              />
-
-            </div>
-
-
-            {/* SALARY */}
-
-            <div className="input-group">
-
-              <label>Salary</label>
-
-              <input
-                type="number"
-                name="salary"
-                placeholder="Enter salary"
-                value={employee.salary}
-                onChange={handleChange}
-                required
-              />
-
-            </div>
-
-
-            {/* DEPARTMENT */}
-
-            <div className="input-group">
-
-              <label>Department</label>
-
-              <input
-                type="text"
-                name="dept"
-                placeholder="e.g. IT, HR, Finance"
-                value={employee.dept}
-                onChange={handleChange}
-                required
-              />
-
-            </div>
-
-
-            {/* PHONE */}
-
-            <div className="input-group">
-
-              <label>Phone</label>
-
-              <input
-                type="number"
-                name="phone"
-                placeholder="Enter phone number"
-                value={employee.phone}
-                onChange={handleChange}
-                required
-              />
-
-            </div>
-
-
-            {/* BUTTON */}
-
-            <div className="form-actions">
-
-              <button
-                type="button"
-                className="clear-button"
-                onClick={clearForm}
-              >
-                Clear
-              </button>
-
-              <button
-                type="submit"
-                className="primary-button"
-              >
-
-                {editingId
-                  ? "Update Employee"
-                  : "Add Employee"}
-
-              </button>
-
-            </div>
-
-          </form>
-
-        </section>
-
-
-        {/* ================= SEARCH ================= */}
-
-        <section className="search-panel">
-
-          <div className="search-title">
-
-            <span className="search-icon">
-              🔎
-            </span>
-
-            <div>
-
-              <h2>Find Employee</h2>
-
-              <p>
-                Search an employee using their ID
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div className="search-area">
-
-            <input
-              type="number"
-              placeholder="Enter Employee ID"
-              value={searchId}
-              onChange={(e) =>
-                setSearchId(e.target.value)
-              }
+          {activePage === "insert" && (
+            <InsertEmployee
+              employee={employee}
+              onChange={handleChange}
+              onSubmit={handleInsertEmployee}
+              onClear={clearForm}
+              loading={loading}
             />
-
-            <button
-              onClick={getEmployeeById}
-            >
-              Search
-            </button>
-
-          </div>
-
-
-          {/* SEARCH RESULT */}
-
-          {searchedEmployee && (
-
-            <div className="search-result">
-
-              <div>
-                <small>EMPLOYEE ID</small>
-                <strong>
-                  #{searchedEmployee.empId}
-                </strong>
-              </div>
-
-              <div>
-                <small>NAME</small>
-                <strong>
-                  {searchedEmployee.eName}{" "}
-                  {searchedEmployee.eLastName}
-                </strong>
-              </div>
-
-              <div>
-                <small>DEPARTMENT</small>
-                <strong>
-                  {searchedEmployee.dept}
-                </strong>
-              </div>
-
-              <div>
-                <small>SALARY</small>
-                <strong>
-                  ₹{searchedEmployee.salary}
-                </strong>
-              </div>
-
-            </div>
-
           )}
 
-        </section>
-
-
-        {/* ================= EMPLOYEE TABLE ================= */}
-
-        <section className="panel employee-panel">
-
-          <div className="table-heading">
-
-            <div>
-
-              <span className="section-label">
-                EMPLOYEE DIRECTORY
-              </span>
-
-              <h2>All Employees</h2>
-
-            </div>
-
-
-            <button
-              className="refresh-button"
-              onClick={getAllEmployees}
-            >
-              ↻ Refresh
-            </button>
-
-          </div>
-
-
-          {loading ? (
-
-            <div className="loading">
-              Loading employees...
-            </div>
-
-          ) : employees.length === 0 ? (
-
-            <div className="empty-state">
-
-              <div className="empty-icon">
-                📋
-              </div>
-
-              <h3>No Employees Found</h3>
-
-              <p>
-                Add your first employee using the form above.
-              </p>
-
-            </div>
-
-          ) : (
-
-            <div className="table-wrapper">
-
-              <table>
-
-                <thead>
-
-                  <tr>
-
-                    <th>ID</th>
-
-                    <th>Employee</th>
-
-                    <th>Age</th>
-
-                    <th>Department</th>
-
-                    <th>Salary</th>
-
-                    <th>Phone</th>
-
-                    <th>Actions</th>
-
-                  </tr>
-
-                </thead>
-
-
-                <tbody>
-
-                  {employees.map((emp) => (
-
-                    <tr key={emp.empId}>
-
-                      <td>
-
-                        <span className="employee-id">
-                          #{emp.empId}
-                        </span>
-
-                      </td>
-
-
-                      <td>
-
-                        <div className="employee-name">
-
-                          <div className="avatar">
-                            {emp.eName
-                              ? emp.eName.charAt(0).toUpperCase()
-                              : "E"}
-                          </div>
-
-                          <div>
-
-                            <strong>
-                              {emp.eName}{" "}
-                              {emp.eLastName}
-                            </strong>
-
-                            <small>
-                              Employee
-                            </small>
-
-                          </div>
-
-                        </div>
-
-                      </td>
-
-
-                      <td>
-                        {emp.age}
-                      </td>
-
-
-                      <td>
-
-                        <span className="department-badge">
-                          {emp.dept}
-                        </span>
-
-                      </td>
-
-
-                      <td>
-
-                        <strong className="salary">
-                          ₹{emp.salary}
-                        </strong>
-
-                      </td>
-
-
-                      <td>
-                        {emp.phone}
-                      </td>
-
-
-                      <td>
-
-                        <div className="action-buttons">
-
-                          <button
-                            className="edit-button"
-                            onClick={() =>
-                              startEdit(emp)
-                            }
-                          >
-                            Edit
-                          </button>
-
-
-                          <button
-                            className="delete-button"
-                            onClick={() =>
-                              deleteEmployee(emp.empId)
-                            }
-                          >
-                            Delete
-                          </button>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  ))}
-
-                </tbody>
-
-              </table>
-
-            </div>
-
+          {activePage === "edit" && editingId !== null && (
+            <EditEmployee
+              employee={{ ...employee, empId: editingId }}
+              onChange={handleChange}
+              onSubmit={handleUpdateEmployee}
+              onCancel={() => { clearForm(); setActivePage("employees"); }}
+              loading={loading}
+            />
           )}
 
-        </section>
+          {activePage === "employees" && (
+            <GetAllEmployees
+              employees={employees}
+              loading={loading}
+              onEdit={handleEditEmployee}
+              onDelete={handleDeleteEmployee}
+              searchText={searchText}
+              onSearchChange={setSearchText}
+            />
+          )}
 
-
-        {/* ================= FOOTER ================= */}
-
-        <footer>
-
-          <p>
-            Employee Management System
-          </p>
-
-          <span>
-            React + Axios • Spring Boot • MySQL
-          </span>
-
-        </footer>
-
+          {activePage === "find" && (
+            <GetEmployeeById
+              searchId={searchId}
+              onSearchChange={setSearchId}
+              onSearch={handleFindEmployee}
+              employee={searchedEmployee}
+            />
+          )}
+        </div>
       </main>
-
     </div>
-
   );
+}
 
+function pageTitle(page) {
+  const titles = {
+    dashboard: "Dashboard",
+    insert: "Insert Employee",
+    edit: "Edit Employee",
+    employees: "All Employees",
+    find: "Find Employee"
+  };
+  return titles[page] || "Dashboard";
 }
 
 export default App;
