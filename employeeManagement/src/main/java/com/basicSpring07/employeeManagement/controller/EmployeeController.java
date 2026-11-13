@@ -19,7 +19,7 @@ import com.basicSpring07.employeeManagement.service.EmployeeService;
 //http://localhost:9346/employee
 @RestController
 @RequestMapping("/employee")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "${app.frontend-url}")
 public class EmployeeController {
 
 	@Autowired
