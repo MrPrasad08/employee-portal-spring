@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:9346/employee";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9346/employee";
 
 // Insert a new employee.
 export const createEmployee = (employee) => {
